@@ -46,22 +46,30 @@ def internal_consistency(assembly: NeuroidAssembly, num_splits: int = 10) -> pd.
     return consistencies
 
 
-def plot_internal_consistency_over_time(assembly: NeuroidAssembly) -> matplotlib.figure.Figure:
+def internal_consistency_over_time(assembly: NeuroidAssembly) -> pd.DataFrame:
     results = []
-
     for time_bin_start in tqdm(assembly['time_bin_start_ms'].values, desc='time_bin'):
         bin_assembly = assembly.sel(time_bin_start_ms=time_bin_start).squeeze('time_bin')
         correlations = internal_consistency(bin_assembly)
         correlations['time_bin_start'] = time_bin_start
         results.append(correlations)
     results = pd.concat(results)
+    return results
 
-    aggregate_results = results.copy()
-    aggregate_results = aggregate_results.groupby(['time_bin_start', 'neuroid_id']).mean().reset_index()
-    aggregate_results = aggregate_results.groupby(['time_bin_start']).median('neuroid_id').reset_index()
+
+def plot_internal_consistency_over_time(assembly: NeuroidAssembly) -> matplotlib.figure.Figure:
+    results = internal_consistency_over_time(assembly)
 
     fig, ax = pyplot.subplots()
-    ax.scatter(aggregate_results['time_bin_start'], aggregate_results['correlation'])
-    ax.set_xlabel('# time bin start [ms]')
-    ax.set_ylabel('correlation')
+    for neuroid_id in set(results['neuroid_id']):
+        neuroid_results = results[results['neuroid_id'] == neuroid_id]
+        neuroid_results = neuroid_results.groupby('time_bin_start').mean().reset_index()  # average over splits
+        ax.plot(neuroid_results['time_bin_start'], neuroid_results['correlation'], color='gray', alpha=0.5)
+
+    aggregate_results = results.groupby(['time_bin_start', 'neuroid_id']).mean().reset_index()  # average over splits
+    aggregate_results = aggregate_results.groupby(['time_bin_start']).median('neuroid_id').reset_index()  # avg neuroids
+
+    ax.plot(aggregate_results['time_bin_start'], aggregate_results['correlation'], color='darkgreen', linewidth=5)
+    ax.set_xlabel('time bin start [ms]')
+    ax.set_ylabel('split-half consistency [r]')
     return fig
