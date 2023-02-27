@@ -1,3 +1,6 @@
+import numpy as np
+from typing import Tuple
+
 import matplotlib.figure
 import pandas as pd
 from brainio.assemblies import walk_coords, NeuroidAssembly
@@ -57,7 +60,52 @@ def internal_consistency_over_time(assembly: NeuroidAssembly) -> pd.DataFrame:
     return results
 
 
-def plot_internal_consistency_over_time(assembly: NeuroidAssembly) -> matplotlib.figure.Figure:
+def time_averaged_consistencies(assembly: NeuroidAssembly, time_range: Tuple[int, int] = (70, 170)) -> pd.DataFrame:
+    time_start, time_end = time_range
+    assembly = assembly[{'time_bin': [time_start <= start <= time_end
+                                      for start in assembly['time_bin_start_ms'].values]}]
+    assembly = assembly.mean('time_bin')
+    consistencies = internal_consistency(assembly)
+    consistencies = consistencies.groupby('neuroid_id').mean().reset_index()  # average over splits
+    return consistencies
+
+
+def filter_assembly(assembly: NeuroidAssembly, consistency_threshold: float = 0.7,
+                    time_range: Tuple[int, int] = (70, 170)) -> NeuroidAssembly:
+    consistencies = time_averaged_consistencies(assembly, time_range=time_range)
+    good_neuroids = consistencies['neuroid_id'][consistencies['correlation'] > consistency_threshold]
+    good_neuroids = good_neuroids.values
+    filtered_assembly = assembly[{'neuroid': [neuroid_id in good_neuroids
+                                              for neuroid_id in assembly['neuroid_id'].values]}]
+    return filtered_assembly
+
+
+def plot_consistencies(assembly: NeuroidAssembly, time_range: Tuple[int, int] = (70, 170)):
+    consistencies = time_averaged_consistencies(assembly, time_range=time_range)
+    fig, ax = pyplot.subplots()
+    ax.hist(consistencies['correlation'], bins=np.arange(0, 1.1, .1), width=0.08, color='darkgreen')
+    ax.set_xlabel('internal consistency [r]')
+    ax.set_ylabel('count')
+
+
+def plot_consistencies_survival_count(assembly: NeuroidAssembly, time_range: Tuple[int, int] = (70, 170)):
+    consistencies = time_averaged_consistencies(assembly, time_range=time_range)
+    # compute histogram
+    histogram_base = np.arange(0, 1.1, .1)
+    histogram_values, histogram_base = np.histogram(consistencies['correlation'], bins=histogram_base)
+    cumulative = np.cumsum(histogram_values[::-1])[::-1]
+    # plot the cumulative function
+    fig, ax = pyplot.subplots()
+    x, y = histogram_base[:-1], cumulative
+    ax.bar(x, y, width=0.08, color='darkgreen')
+    for _x, _y in zip(x, y):
+        ax.text(_x, _y, _y, ha='center', va='bottom')
+    ax.set_xlabel('internal consistency [r]')
+    ax.set_ylabel('survival count')
+    ax.set_xticks(histogram_base[:-1])
+
+
+def plot_internal_consistency_over_time(assembly: NeuroidAssembly):
     results = internal_consistency_over_time(assembly)
 
     fig, ax = pyplot.subplots()
@@ -72,4 +120,3 @@ def plot_internal_consistency_over_time(assembly: NeuroidAssembly) -> matplotlib
     ax.plot(aggregate_results['time_bin_start'], aggregate_results['correlation'], color='darkgreen', linewidth=5)
     ax.set_xlabel('time bin start [ms]')
     ax.set_ylabel('split-half consistency [r]')
-    return fig
