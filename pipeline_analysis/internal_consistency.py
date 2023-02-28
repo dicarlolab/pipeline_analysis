@@ -1,7 +1,6 @@
-import numpy as np
 from typing import Tuple
 
-import matplotlib.figure
+import numpy as np
 import pandas as pd
 from brainio.assemblies import walk_coords, NeuroidAssembly
 from matplotlib import pyplot

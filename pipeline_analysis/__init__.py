@@ -8,7 +8,7 @@ def print_assembly_info(assembly: NeuroidAssembly):
     print(f"unique images: {len(set(assembly['stimulus_id'].values))}")
     print("repetitions:", np.unique(assembly['repetition'].values, return_counts=True))
     print()
-    print(f"electrodes: {len(assembly['neuroid'])}")
+    print(f"unique neuroid_ids: {len(set(assembly['neuroid_id'].values))}")
     print(f"regions: {sorted(set(assembly['region'].values))}")
     print(f"subregions: {sorted(set(assembly['subregion'].values))}")
     print()
