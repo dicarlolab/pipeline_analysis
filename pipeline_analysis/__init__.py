@@ -9,6 +9,7 @@ def print_assembly_info(assembly: NeuroidAssembly):
     print("repetitions:", np.unique(assembly['repetition'].values, return_counts=True))
     print()
     print(f"unique neuroid_ids: {len(set(assembly['neuroid_id'].values))}")
+    print(f"animals: {sorted(set(assembly['animal'].values))}")
     print(f"regions: {sorted(set(assembly['region'].values))}")
     print(f"subregions: {sorted(set(assembly['subregion'].values))}")
     print()
