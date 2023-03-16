@@ -1,3 +1,5 @@
+from typing import Iterable
+
 import numpy as np
 import pandas as pd
 from brainio.assemblies import NeuroidAssembly
@@ -8,12 +10,12 @@ from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 
-def plot_sites_vs_accuracy(assembly: NeuroidAssembly):
+def plot_sites_vs_accuracy(assembly: NeuroidAssembly, sites: Iterable[int] = (1, 5, 10, 20, 40)):
     assembly = assembly.transpose('presentation', 'neuroid')
     results = []
 
     random_state = RandomState(0)
-    for num_sites in tqdm([1, 5, 10, 20, 40], desc='num sites'):
+    for num_sites in tqdm(sites, desc='num sites'):
         for split in range(10):
             sites = random_state.choice(assembly['neuroid_id'].values, size=num_sites, replace=False)
             sites_assembly = assembly[
